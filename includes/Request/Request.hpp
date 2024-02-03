@@ -3,6 +3,10 @@
 
 #include <netdb.h>
 #include <cstring>
+#include <map>
+#include <algorithm>
+#include <sstream>
+#include <unistd.h>
 #include "../Server.hpp"
 
 class Request
@@ -16,20 +20,25 @@ private:
 	Request& operator=( const Request& rhs ) ;
 	Request( void ) ;
 
-public:
-	Location::Method_t 	method ;
-	std::string			uri ;
-	std::string 		host ;
-	bool				isConnectionClose ;
-    std::string 		requestBody ;
+	typedef std::map<std::string, std::string> headers_t ;
 
-	bool				isRequestFinished ;
+public:
+	std::string 		method ;
+	std::string			uri ;
+	std::string			httpVersion ;
+
+	headers_t			headers ;
+    std::string 		body ;
+
+	bool				isParsed ;
 	std::string			response ;
-	bool				isReponseFinished ;
+	bool				isFinished ;
 
 	Request( const int& socketfd, const Server& owner, const struct sockaddr& in_addr ) ;
 	Request( const Request& rhs ) ;
 	~Request( void ) ;
+
+	void parse( void ) ;
 
 	// Getters
 	const int&          			getSocketFD( void ) const ;

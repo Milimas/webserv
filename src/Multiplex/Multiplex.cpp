@@ -149,7 +149,7 @@ void Multiplex::start( void )
                     requests.erase(events[i].data.fd) ;
                     continue ;
                 }
-                requests.find(events[i].data.fd)->second.requestBody += buf ;
+                requests.find(events[i].data.fd)->second.body += buf ;
                 /* Write the buffer to standard output */
                 std::cout << FOREGRN ;
                 std::cout << "============== Request ==============" << std::endl ;
@@ -169,7 +169,10 @@ void Multiplex::start( void )
                  * don't forget that if you didnt set the connection to EPOLLOUT the program
                  * wont send your response and keep waiting for EPOLLIN
                 */
-                if (requests.find(events[i].data.fd)->second.requestBody.find("\r\n\r\n") != std::string::npos)
+                // if (requests.find(events[i].data.fd)->second.body.find("\r\n\r\n") != std::string::npos)
+                    // SocketManager::epollCtlSocket(events[i].data.fd, EPOLL_CTL_MOD, EPOLLOUT) ;
+                requests.find(events[i].data.fd)->second.parse() ;
+                if (requests.find(events[i].data.fd)->second.isParsed)
                     SocketManager::epollCtlSocket(events[i].data.fd, EPOLL_CTL_MOD, EPOLLOUT) ;
             }
             else if (events[i].events & EPOLLOUT) // check if we have EPOLLOUT (connection socket ready to write)
@@ -194,19 +197,19 @@ void Multiplex::start( void )
                  * Incas the client request Connection: close we close the connection
                  * else the connection remains open and waiting for another rquest from the client
                 */
-                if (requests.find(events[i].data.fd)->second.requestBody.find("Connection: close") != std::string::npos)
-                {
-                    printf ("Closed connection on descriptor %d\n",
-                            events[i].data.fd);
-                    /* Closing the descriptor will make epoll remove it
-                        from the set of descriptors which are monitored. */
-                    close (events[i].data.fd);
-                    // requests.erase(events[i].data.fd) ;
-                }
+                // if (requests.find(events[i].data.fd)->second.body.find("Connection: close") != std::string::npos)
+                // {
+                //     printf ("Closed connection on descriptor %d\n",
+                //             events[i].data.fd);
+                //     /* Closing the descriptor will make epoll remove it
+                //         from the set of descriptors which are monitored. */
+                //     close (events[i].data.fd);
+                //     // requests.erase(events[i].data.fd) ;
+                // }
                 /**
                  * clear request buffer after processing it and sending request
                 */
-                requests.find(events[i].data.fd)->second.requestBody.clear() ;
+                // requests.find(events[i].data.fd)->second.body.clear() ;
                 std::cout << "Response Sent" << std::endl ;
             }
         }
