@@ -102,17 +102,20 @@ std::string Lexer::getSymbolName( const sym_t& s )
 
 void Lexer::nextSym( void )
 {
+	if (it != tokens.end())
+		prev = it++ ;
 	sym = nameSyms[*it] ;
 	// std::cout << std::setw(10) << std::left << getSymbolName(sym) << " ";
 	// std::cout << *it << std::endl ;
-	if (it != tokens.end())
-		prev = it++ ;
 }
 
 bool Lexer::accept(sym_t s)
 {
     if (sym == s) {
-        nextSym();
+		do
+		{
+	        nextSym();
+		} while (sym == SEMICOLON && s == SEMICOLON);
         return (true) ;
     }
     return (false) ;
@@ -199,7 +202,7 @@ Lexer::tokens_t Lexer::checkSyntax( const std::string& configPath )
 {
 	tokens = lexer(configPath) ;
 	it = tokens.begin() ;
-	nextSym() ;
+	sym = nameSyms[*it] ;
 	while (it != tokens.end() && expect(SERVER))
 	{
 		expect(OCB) ;

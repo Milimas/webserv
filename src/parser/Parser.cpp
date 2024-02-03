@@ -193,7 +193,10 @@ bool Parser::accept( const std::string& sym )
 {
     if ( sym == *curr )
     {
-        next() ;
+        do
+		{
+	        next();
+		} while (sym == ";" && *curr == ";");
         return (true) ;
     }
     return (false) ;
