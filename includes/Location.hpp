@@ -9,7 +9,7 @@
 class Location
 {
 public:
-	typedef enum { GET, HEAD, POST, PUT, DELETE } Method_t;
+	typedef enum { NONE, GET, POST, DELETE } Method_t;
 	typedef std::vector<Method_t> Methods_t ;
 	typedef std::pair<int, std::string> redirection_t ;
 	

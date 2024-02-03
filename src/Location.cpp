@@ -114,12 +114,8 @@ static const std::string getMethod( Location::Method_t method )
 {
     if (method == Location::GET)
         return ("GET") ;
-    if (method == Location::HEAD)
-        return ("HEAD") ;
     if (method == Location::POST)
         return ("POST") ;
-    if (method == Location::PUT)
-        return ("PUT") ;
     if (method == Location::DELETE)
         return ("DELETE") ;
     return ("Error") ;

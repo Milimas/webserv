@@ -149,7 +149,7 @@ void Multiplex::start( void )
                     requests.erase(events[i].data.fd) ;
                     continue ;
                 }
-                requests.find(events[i].data.fd)->second.request += buf ;
+                requests.find(events[i].data.fd)->second.requestBody += buf ;
                 /* Write the buffer to standard output */
                 std::cout << FOREGRN ;
                 std::cout << "============== Request ==============" << std::endl ;
@@ -158,18 +158,18 @@ void Multiplex::start( void )
                 std::cout << "==============+++++++++==============" << std::endl ;
                 std::cout << "==============+++++++++==============" << std::endl ;
                 std::cout << RESETTEXT ;
-                if (s == -1)
+                if (s == -1) // this is only for debug purpose
                 {
                     perror ("write");
                     throw std::runtime_error("Could not write in ") ;
                 }
-
+                
                 /**
                  * Set connection socket to EPOLLOUT to write reponse in the next iteration
                  * don't forget that if you didnt set the connection to EPOLLOUT the program
                  * wont send your response and keep waiting for EPOLLIN
                 */
-                if (requests.find(events[i].data.fd)->second.request.find("\r\n\r\n") != std::string::npos)
+                if (requests.find(events[i].data.fd)->second.requestBody.find("\r\n\r\n") != std::string::npos)
                     SocketManager::epollCtlSocket(events[i].data.fd, EPOLL_CTL_MOD, EPOLLOUT) ;
             }
             else if (events[i].events & EPOLLOUT) // check if we have EPOLLOUT (connection socket ready to write)
@@ -194,7 +194,7 @@ void Multiplex::start( void )
                  * Incas the client request Connection: close we close the connection
                  * else the connection remains open and waiting for another rquest from the client
                 */
-                if (requests.find(events[i].data.fd)->second.request.find("Connection: close") != std::string::npos)
+                if (requests.find(events[i].data.fd)->second.requestBody.find("Connection: close") != std::string::npos)
                 {
                     printf ("Closed connection on descriptor %d\n",
                             events[i].data.fd);
@@ -206,7 +206,7 @@ void Multiplex::start( void )
                 /**
                  * clear request buffer after processing it and sending request
                 */
-                requests.find(events[i].data.fd)->second.request.clear() ;
+                requests.find(events[i].data.fd)->second.requestBody.clear() ;
                 std::cout << "Response Sent" << std::endl ;
             }
         }
