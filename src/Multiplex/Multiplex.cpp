@@ -123,6 +123,9 @@ void Multiplex::start( void )
                 ssize_t bytesReceived; // number of bytes read returned
                 char buf[R_SIZE] = {0}; // read buffer
 
+                /**
+                 * NOTE: make sure the buf is null-terminated
+                */
                 bytesReceived = read (events[i].data.fd, buf, sizeof(char) * R_SIZE - 1);
                 if (bytesReceived == -1)
                 {
@@ -171,12 +174,22 @@ void Multiplex::start( void )
                 */
                 // if (requests.find(events[i].data.fd)->second.body.find("\r\n\r\n") != std::string::npos)
                     // SocketManager::epollCtlSocket(events[i].data.fd, EPOLL_CTL_MOD, EPOLLOUT) ;
-                requests.find(events[i].data.fd)->second.parse() ;
-                if (requests.find(events[i].data.fd)->second.isParsed)
+                requests.find(events[i].data.fd)->second.parse(buf, bytesReceived) ;
+                if (requests.find(events[i].data.fd)->second.state == Request::FINISHED)
                     SocketManager::epollCtlSocket(events[i].data.fd, EPOLL_CTL_MOD, EPOLLOUT) ;
+                if (requests.find(events[i].data.fd)->second.state == Request::WAIT_CLOSE)
+                {
+                    printf ("Closed connection on descriptor %d\n",
+                            events[i].data.fd);
+                    /* Closing the descriptor will make epoll remove it
+                        from the set of descriptors which are monitored. */
+                    close (events[i].data.fd);
+                    requests.erase(events[i].data.fd) ;
+                }
             }
             else if (events[i].events & EPOLLOUT) // check if we have EPOLLOUT (connection socket ready to write)
             {
+                
                 /**
                  * Set connection socket to EPOLLIN to read another request in the next iteration
                 */

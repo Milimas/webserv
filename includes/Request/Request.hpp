@@ -7,11 +7,28 @@
 #include <algorithm>
 #include <sstream>
 #include <unistd.h>
+#include <string>
 #include "../Server.hpp"
+
+#define CR 		"\r"
+#define LF 		"\n"
+#define CRLF 	CR + LF
+#define SP 		" "
+#define HT 		"\t"
 
 class Request
 {
 public:
+	enum state_e {
+		START = 0,
+		REQUEST_LINE,
+		HEADER,
+		BODY,
+		FINISHED,
+		WAIT_CLOSE,
+		ERROR,
+	} ;
+	state_e state ;
 private:
     const Server&   owner ;
 	const int       socketfd ;
@@ -30,15 +47,12 @@ public:
 	headers_t			headers ;
     std::string 		body ;
 
-	bool				isParsed ;
-	std::string			response ;
-	bool				isFinished ;
-
 	Request( const int& socketfd, const Server& owner, const struct sockaddr& in_addr ) ;
 	Request( const Request& rhs ) ;
 	~Request( void ) ;
 
-	void parse( void ) ;
+	void parse( std::string buf, ssize_t bytesReceived ) ;
+	void sendError( void ) ;
 
 	// Getters
 	const int&          			getSocketFD( void ) const ;
