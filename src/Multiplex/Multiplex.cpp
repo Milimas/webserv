@@ -44,7 +44,7 @@ void Multiplex::start( void )
         int eventCount ; // Number of events epoll_wait returned
 
         eventCount = epoll_wait (epollFD, events, SOMAXCONN, -1); // Waiting for new event to occur
-        std::cout << eventCount << " events ready" << std::endl ;
+        // std::cout << eventCount << " events ready" << std::endl ;
         for (int i = 0; i < eventCount; i++)
         {
             std::cout << "descriptor " << events[i].data.fd << " " ;
@@ -152,15 +152,15 @@ void Multiplex::start( void )
                     requests.erase(events[i].data.fd) ;
                     continue ;
                 }
-                requests.find(events[i].data.fd)->second.body += buf ;
+                // requests.find(events[i].data.fd)->second.body += buf ;
                 /* Write the buffer to standard output */
-                std::cout << FOREGRN ;
-                std::cout << "============== Request ==============" << std::endl ;
-                std::cout << "==============+++++++++==============" << std::endl ;
-                s = write (1, buf, bytesReceived);
-                std::cout << "==============+++++++++==============" << std::endl ;
-                std::cout << "==============+++++++++==============" << std::endl ;
-                std::cout << RESETTEXT ;
+                // std::cout << FOREGRN ;
+                // std::cout << "============== Request ==============" << std::endl ;
+                // std::cout << "==============+++++++++==============" << std::endl ;
+                // s = write (1, buf, bytesReceived);
+                // std::cout << "==============+++++++++==============" << std::endl ;
+                // std::cout << "==============+++++++++==============" << std::endl ;
+                // std::cout << RESETTEXT ;
                 if (s == -1) // this is only for debug purpose
                 {
                     perror ("write");

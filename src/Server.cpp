@@ -33,7 +33,7 @@ Server::Server( const Server& rhs )
 
 Server& Server::operator=( const Server& rhs )
 {
-    std::cerr << __PRETTY_FUNCTION__ << std::endl ;
+    // std::cerr << __PRETTY_FUNCTION__ << std::endl ;
     
     serverNames_t::const_iterator itS = rhs._serverNames.begin() ;
     this->_serverNames.clear() ;
