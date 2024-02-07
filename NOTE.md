@@ -334,4 +334,8 @@ Understanding and adhering to these rules help ensure that URIs are correctly in
 # Resouces
 
 [How nginx processes a request](https://nginx.org/en/docs/http/request_processing.html)
+[Chunked Transfer Coding](https://datatracker.ietf.org/doc/html/rfc2616#section-3.6.1)
 
+## URI Grammer
+
+[Uniform Resource Identifiers (URI): Generic Syntax](https://datatracker.ietf.org/doc/html/rfc2396)

@@ -55,6 +55,8 @@ public:
     // static void setServers( const servers_t& servers ) ;
     static void start( void ) ;
     static void setup( const servers_t& _servers ) ;
+	static void newConnection( SOCKET fd ) ;
+	static void handleRequest( Request& request ) ;
 
 	// Getters
 

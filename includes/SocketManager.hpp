@@ -32,7 +32,7 @@ public:
     static int makeSocketNonBlocking( int sfd ) ;
     static int startListening( int sfd ) ;
     static int createEpoll( void ) ;
-    static int epollCtlSocket( int sfd, int op, uint32_t _events = EPOLLIN ) ;
+    static int epollCtlSocket( int sfd, int op, uint32_t _events = EPOLLIN | EPOLLOUT ) ;
 
 };
 

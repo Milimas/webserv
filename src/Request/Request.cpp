@@ -10,14 +10,16 @@ const Server& 					Request::getServer( void ) const
     return (owner) ;
 }
 
-Request::Request( const int& socketfd, const Server& owner, const struct sockaddr& in_addr ) : state(START), owner(owner), socketfd(socketfd), in_addr(in_addr), method(), body()
+Request::Request( const int& socketfd, const Server& owner ) : state(START), owner(owner), socketfd(socketfd), method(), body()
 {
+    this->statusCode = 0 ;
 }
 
-Request::Request( const Request& rhs ) : owner(rhs.owner), socketfd(rhs.socketfd), in_addr(rhs.in_addr), method(rhs.method)
+Request::Request( const Request& rhs ) : owner(rhs.owner), socketfd(rhs.socketfd), method(rhs.method)
 {
     this->state = START ;
     this->body = rhs.body ;
+    this->statusCode = rhs.statusCode ;
 }
 
 Request::~Request( void )
@@ -27,13 +29,18 @@ Request::~Request( void )
 Request& Request::operator=( const Request& rhs )
 {
     (void) rhs ;
-    memcpy(&this->in_addr, &rhs.in_addr, sizeof(struct sockaddr)) ;
     this->state = rhs.state ;
     this->method = rhs.method ;
     this->body = rhs.body ;
+    this->statusCode = rhs.statusCode ;
     return (*this) ;
 }
 
+/**
+ * NOTE: It is expected that the folding LWS will be 
+ *       replaced with a single SP before interpretation of the TEXT value.
+ *        LWS            = [CRLF] 1*( SP | HT )
+*/
 void LWS2SP( std::string& buf )
 {
     // replace HT with SP
@@ -44,33 +51,110 @@ void LWS2SP( std::string& buf )
         pos += 1 ;
     }
     // find LWS and replace with SP
-    while((pos = buf.find("\r\n ")) != std::string::npos)
+    pos = 0 ;
+    while((pos = buf.find("\r\n ", pos)) != std::string::npos)
     {
         buf.replace(pos, 3, SP) ;
+        pos += 1 ;
     }
     // replace 1*SP with SP
+    pos = 0 ;
     while((pos = buf.find("  ", pos)) != std::string::npos)
     {
         buf.replace(pos, 2, SP) ;
+        pos += 1 ;
     }
 }
 
-void Request::sendError( void )
+void Request::setStatusCode( const int errorNumber )
 {
-    std::string response("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n") ;
-    write(1, response.c_str(), response.size()) ;
-    write(socketfd, response.c_str(), response.size()) ;
-    state = WAIT_CLOSE ;
+    this->statusCode = errorNumber ;    
+}
+
+Request::state_e Request::parseRequestLine( std::stringstream& ss )
+{
+    /**
+     * split the requestLine to 3 parts
+     * 1. Method (method)
+     * 2. path (uri)
+     * 3. version (HTTP/1.1)
+     * 
+     * you need to verify if the method is supported (we only support GET, POST and DELETE)
+     * verify the version we only support HTTP/1.1
+     * 
+     * Errors:
+     *  - Method not supported
+     *  - Unsupported version (for http version)
+     *  - bad request with status code 400
+    */
+    /**
+     * check if the httpVersion is supported (the only supported version is HTTP/1.1)
+     * if the version given by the request follow this sementics and its not HTTP/1.1
+     * HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
+     * then send "HTTP/1.1 505 HTTP Version Not Supported"
+     * 
+    */
+    std::string line ;
+    /**
+     * In the interest of robustness, servers SHOULD ignore any empty
+     * line(s) received where a Request-Line is expected.
+    */
+    while (line.empty() && ss.good() && !ss.eof()) 
+    {
+        getline(ss, line) ;
+    }
+    std::stringstream requestLine(line) ;
+    requestLine >> headers["Method"] >> headers["Target"] >> std::ws ;
+    getline(requestLine, headers["Version"], '\r') ;
+    std::cout << "request line: " << line << std::endl ;
+    if (headers["Version"].empty())
+    {
+        setStatusCode(400) ;
+        return (ERROR);
+    }
+    return (REQUEST_LINE) ;
+}
+
+Request::state_e Request::parseHeaders( std::stringstream& ss )
+{
+    std::string line ;
+    while (getline(ss, line))
+    {
+        std::cout << "line: " << line << std::endl ;
+        if (line.empty()) // header not finished yet
+        {
+            std::cout << "NOT FINISHED" << std::endl ;
+            return (state);
+        }
+        if (line == "\r") // header is finished CRLF
+        {
+            std::cout << "FINISHED" << std::endl ;
+            headers_t::iterator it = headers.begin() ;
+            while (it != headers.end())
+            {
+                std::cout << it->first << ": " << it->second << std::endl ;
+                it++ ;
+            }
+            return (HEADER) ;
+        }
+        size_t delimiterPos = line.find(": ") ;
+        if (delimiterPos == std::string::npos)
+        {
+            // bad header
+            std::cout << "bad requst line \"" << line << "\"" << std::endl ;
+            setStatusCode(400) ;
+            return (ERROR) ;
+        }
+        std::string key = line.substr(0, delimiterPos) ;
+        std::string value = line.substr(delimiterPos + 2, line.size() - 2) ;
+        headers.insert(std::make_pair(key, value)) ;
+    }
+    return (state) ;
 }
 
 void Request::parse( std::string buf, ssize_t bytesReceived )
 {
     (void) bytesReceived ;
-    /**
-     * NOTE: It is expected that the folding LWS will be 
-     *       replaced with a single SP before interpretation of the TEXT value.
-     *        LWS            = [CRLF] 1*( SP | HT )
-    */
     LWS2SP(buf) ;
     std::cout << "Normalized buf: '" << buf << "'" << std::endl ;
     std::stringstream ss(buf) ;
@@ -82,60 +166,19 @@ void Request::parse( std::string buf, ssize_t bytesReceived )
      *                   *(message-header CRLF)
      *                   CRLF
      *                   [ message-body ]
+     * 
+     * start-line      = Request-Line | Status-Line
+     * 
+    */
+    /**
+     * Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
     */
     if (state == START)
-    {
-        /**
-         * start-line      = Request-Line | Status-Line
-        */
-        std::string line ;
-        getline(ss, line) ;
-        std::stringstream requestLine(line) ;
-        requestLine >> headers["Method"] >> headers["Target"] >> std::ws ;
-        getline(requestLine, headers["Version"], '\r') ;
-        if (headers["Version"].empty())
-        {
-            sendError() ;
-            return ;
-        }
-        state = REQUEST_LINE ;
-    }
+        state = parseRequestLine(ss) ;
     if (state == REQUEST_LINE)
     {
-        std::string line ;
-        while (getline(ss, line))
-        {
-            std::cout << "line: " << line << std::endl ;
-            if (line.empty()) // header not finished yet
-            {
-                std::cout << "NOT FINISHED" << std::endl ;
-                return ;
-            }
-            if (line == "\r") // header is finished CRLF
-            {
-                std::cout << "FINISHED" << std::endl ;
-                state = HEADER ;
-                headers_t::iterator it = headers.begin() ;
-                while (it != headers.end())
-                {
-                    std::cout << it->first << ": " << it->second << std::endl ;
-                    it++ ;
-                }
-                break ;
-            }
-            size_t delimiterPos = line.find(": ") ;
-            if (delimiterPos == std::string::npos)
-            {
-                // bad header
-                std::cout << "bad requst line \"" << line << "\"" << std::endl ;
-                sendError() ;
-                break ;
-            }
-            std::string key = line.substr(0, delimiterPos) ;
-            std::string value = line.substr(delimiterPos + 2, line.size() - 2) ;
-            headers.insert(std::make_pair(key, value)) ;
-        }
         
+        state = parseHeaders(ss) ;
         /**
          * request-header = Accept                   ; Section 14.1
          *                | Accept-Charset           ; Section 14.2
@@ -192,98 +235,10 @@ void Request::parse( std::string buf, ssize_t bytesReceived )
     {
         state = FINISHED ;
     }
-    // if (!isHeaderParsed)
-    // {
-    //     std::stringstream ss(body) ;
-    //     std::string line ;
-    //     std::string requestLine ;
-    //     getline(ss, requestLine, '\r') ;
-    //     getline(ss, line) ; // skip \n after \r
-    //     /**
-    //      * split the requestLine to 3 parts
-    //      * 1. Method (method)
-    //      * 2. path (uri)
-    //      * 3. version (HTTP/1.1)
-    //      * 
-    //      * you need to verify if the method is supported (we only support GET, POST and DELETE)
-    //      * verify the version we only support HTTP/1.1
-    //      * 
-    //      * Errors:
-    //      *  - Method not supported
-    //      *  - Unsupported version (for http version)
-    //      *  - bad request with status code 400
-    //     */
-    //     std::stringstream reqss(requestLine) ;
-    //     reqss >> method >> uri >> httpVersion ;
-    //     if (method.empty() || uri.empty() || httpVersion.empty())
-    //     {
-    //         std::string response("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n") ;
-    //         write(1, response.c_str(), response.size()) ;
-    //         write(socketfd, response.c_str(), response.size()) ;
-    //         close(socketfd) ;
-    //     }
-    //     headers.insert(std::make_pair("Method", method)) ;
-    //     headers.insert(std::make_pair("Target", uri)) ;
-    //     headers.insert(std::make_pair("Version", httpVersion)) ;
-    //     /**
-    //      * check if the httpVersion is supported (the only supported version is HTTP/1.1)
-    //      * if the version given by the request follow this sementics and its not HTTP/1.1
-    //      * HTTP-Version   = "HTTP" "/" 1*DIGIT "." 1*DIGIT
-    //      * then send "HTTP/1.1 505 HTTP Version Not Supported"
-    //      * 
-    //     */
-    //     std::cout << "method: " << method << std::endl ;
-    //     std::cout << "request uri: " << uri << std::endl ;
-    //     std::cout << "http version: " << httpVersion << std::endl ;
-    //     // you need to match location before checking if the method is allowed
+    
 
-    //     while (getline(ss, line))
-    //     {
-    //         size_t delimiterPos = line.find(": ") ;
-    //         if (delimiterPos == std::string::npos)
-    //         {
-    //             if (line.empty() || line == "\r")
-    //                 continue ;
-    //             // bad header
-    //             std::cout << "bad requst line \"" << line << "\"" << std::endl ;
-    //             std::string response("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n") ;
-    //             write(1, response.c_str(), response.size()) ;
-    //             write(socketfd, response.c_str(), response.size()) ;
-    //             break ;
-    //         }
-    //         std::string key = line.substr(0, delimiterPos) ;
-    //         std::string value = line.substr(delimiterPos + 2, line.size() - 1) ;
-    //         headers.insert(std::make_pair(key, value)) ;
-    //     }
-    //     isHeaderParsed = true ;
-    //     std::cout << "Host: " << headers["Host"] << std::endl ;
-    //     std::cout << "Connection: " << headers["Connection"] << std::endl ;
-    //     std::cout << "Accept: " << headers["Accept"] << std::endl ;
-        
-    //     if (headers["Method"] == "GET")
-    //     {
-    //         // if the method is GET just ignore the body
-    //         isFinished = true ;
-    //         body.clear() ;
-    //         return ; 
-    //     }
-    //     else if (headers["Method"] == "DELETE")
-    //     {
-    //         isFinished = true ;
-    //         body.clear() ;
-    //         return ;
-    //     }
-    //     else if (headers["Method"] == "POST")
-    //     {
-    //         isFinished = true ;
-    //         return ;
-    //     }
-    //     else
-    //     {
-    //         std::string response("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n") ;
-    //         write(1, response.c_str(), response.size()) ;
-    //         write(socketfd, response.c_str(), response.size()) ;
-    //     }
-    //     // delete headers from body
-    // }
+    
+    // you need to match location before checking if the method is allowed
+
+
 }

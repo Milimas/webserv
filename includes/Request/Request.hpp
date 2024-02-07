@@ -20,19 +20,19 @@ class Request
 {
 public:
 	enum state_e {
-		START = 0,
-		REQUEST_LINE,
-		HEADER,
-		BODY,
-		FINISHED,
-		WAIT_CLOSE,
-		ERROR,
+					START = 0,		// Request ready to be parsed
+					REQUEST_LINE,	// Request-Line parsed
+					HEADER,			// Headers parsed
+					BODY,			// body parsed
+					FINISHED,		// Finished parsing the request
+					ERROR,			// Error occured and statusCode is set to error number
+					WAIT_CLOSE,		// Request socket waiting to be closed
 	} ;
-	state_e state ;
+	state_e 		state ;
+	int 			statusCode ;
 private:
     const Server&   owner ;
 	const int       socketfd ;
-	struct sockaddr in_addr ;
 
 	Request& operator=( const Request& rhs ) ;
 	Request( void ) ;
@@ -47,12 +47,18 @@ public:
 	headers_t			headers ;
     std::string 		body ;
 
-	Request( const int& socketfd, const Server& owner, const struct sockaddr& in_addr ) ;
+	Request( const int& socketfd, const Server& owner ) ;
 	Request( const Request& rhs ) ;
 	~Request( void ) ;
 
 	void parse( std::string buf, ssize_t bytesReceived ) ;
-	void sendError( void ) ;
+	state_e parseRequestLine( std::stringstream& ss ) ;
+	state_e parseHeaders( std::stringstream& ss) ;
+
+	/**
+	 * when error set the state to ERROR and set the errorNumber
+	*/
+	void setStatusCode( const int errorNumber ) ; // this should not be here
 
 	// Getters
 	const int&          			getSocketFD( void ) const ;
