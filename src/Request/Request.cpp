@@ -5,12 +5,12 @@ const int&          			Request::getSocketFD( void ) const
     return (socketfd) ;
 }
 
-const Server& 					Request::getServer( void ) const
+const Server* 					Request::getServer( void ) const
 {
     return (owner) ;
 }
 
-Request::Request( const int& socketfd, const Server& owner ) : state(START), owner(owner), socketfd(socketfd), method(), body()
+Request::Request( const int& socketfd ) : state(START), owner(NULL), socketfd(socketfd), method(), body()
 {
     this->statusCode = 0 ;
 }
@@ -45,6 +45,11 @@ void LWS2SP( std::string& buf )
 {
     // replace HT with SP
     size_t pos = 0;
+    while((pos = buf.find("\r\n", pos)) != std::string::npos)
+    {
+        buf.replace(pos, 2, LF) ;
+        pos += 1 ;
+    }
     while((pos = buf.find(HT, pos)) != std::string::npos)
     {
         buf.replace(pos, 1, SP) ;
@@ -52,9 +57,9 @@ void LWS2SP( std::string& buf )
     }
     // find LWS and replace with SP
     pos = 0 ;
-    while((pos = buf.find("\r\n ", pos)) != std::string::npos)
+    while((pos = buf.find("\n ", pos)) != std::string::npos)
     {
-        buf.replace(pos, 3, SP) ;
+        buf.replace(pos, 2, SP) ;
         pos += 1 ;
     }
     // replace 1*SP with SP
@@ -103,9 +108,10 @@ Request::state_e Request::parseRequestLine( std::stringstream& ss )
     {
         getline(ss, line) ;
     }
+    std::cout << "line: " << line << std::endl ;
     std::stringstream requestLine(line) ;
     requestLine >> headers["Method"] >> headers["Target"] >> std::ws ;
-    getline(requestLine, headers["Version"], '\r') ;
+    getline(requestLine, headers["Version"]) ;
     std::cout << "request line: " << line << std::endl ;
     if (headers["Version"].empty())
     {
@@ -118,24 +124,24 @@ Request::state_e Request::parseRequestLine( std::stringstream& ss )
 Request::state_e Request::parseHeaders( std::stringstream& ss )
 {
     std::string line ;
-    while (getline(ss, line))
+    while (!ss.eof() && getline(ss, line))
     {
         std::cout << "line: " << line << std::endl ;
-        if (line.empty()) // header not finished yet
+        // if (line.empty()) // header not finished yet
+        // {
+        //     std::cout << "NOT FINISHED" << std::endl ;
+        //     return (state);
+        // }
+        if (line.empty()) // header is finished CRLF
         {
-            std::cout << "NOT FINISHED" << std::endl ;
-            return (state);
-        }
-        if (line == "\r") // header is finished CRLF
-        {
-            std::cout << "FINISHED" << std::endl ;
-            headers_t::iterator it = headers.begin() ;
-            while (it != headers.end())
-            {
-                std::cout << it->first << ": " << it->second << std::endl ;
-                it++ ;
-            }
-            return (HEADER) ;
+            // std::cout << "FINISHED" << std::endl ;
+            // headers_t::iterator it = headers.begin() ;
+            // while (it != headers.end())
+            // {
+            //     std::cout << it->first << ": " << it->second << std::endl ;
+            //     it++ ;
+            // }
+            return (state) ;
         }
         size_t delimiterPos = line.find(": ") ;
         if (delimiterPos == std::string::npos)
@@ -146,17 +152,17 @@ Request::state_e Request::parseHeaders( std::stringstream& ss )
             return (ERROR) ;
         }
         std::string key = line.substr(0, delimiterPos) ;
-        std::string value = line.substr(delimiterPos + 2, line.size() - 2) ;
+        std::string value = line.substr(delimiterPos + 2, line.length()) ;
         headers.insert(std::make_pair(key, value)) ;
+        // getline(ss, line) ; // skip new line '\n'
     }
     return (state) ;
 }
 
-void Request::parse( std::string buf, ssize_t bytesReceived )
+void Request::parse( std::string buf )
 {
-    (void) bytesReceived ;
     LWS2SP(buf) ;
-    std::cout << "Normalized buf: '" << buf << "'" << std::endl ;
+    // std::cout << "Normalized buf: '" << buf << "'" << std::endl ;
     std::stringstream ss(buf) ;
     /**
      * 
@@ -174,10 +180,12 @@ void Request::parse( std::string buf, ssize_t bytesReceived )
      * Request-Line   = Method SP Request-URI SP HTTP-Version CRLF
     */
     if (state == START)
+    {
         state = parseRequestLine(ss) ;
+        std::string line ;
+    }
     if (state == REQUEST_LINE)
     {
-        
         state = parseHeaders(ss) ;
         /**
          * request-header = Accept                   ; Section 14.1

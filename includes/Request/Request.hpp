@@ -31,7 +31,7 @@ public:
 	state_e 		state ;
 	int 			statusCode ;
 private:
-    const Server&   owner ;
+    Server*   		owner ;
 	const int       socketfd ;
 
 	Request& operator=( const Request& rhs ) ;
@@ -47,11 +47,11 @@ public:
 	headers_t			headers ;
     std::string 		body ;
 
-	Request( const int& socketfd, const Server& owner ) ;
+	Request( const int& socketfd ) ;
 	Request( const Request& rhs ) ;
 	~Request( void ) ;
 
-	void parse( std::string buf, ssize_t bytesReceived ) ;
+	void parse( std::string buf ) ;
 	state_e parseRequestLine( std::stringstream& ss ) ;
 	state_e parseHeaders( std::stringstream& ss) ;
 
@@ -62,7 +62,7 @@ public:
 
 	// Getters
 	const int&          			getSocketFD( void ) const ;
-	const Server& 					getServer( void ) const ;
+	const Server* 					getServer( void ) const ;
 
 } ;
 

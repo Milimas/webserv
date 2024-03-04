@@ -50,15 +50,16 @@ int SocketManager::createSocket( const char *host, const char *port, int ai_fami
 
 int SocketManager::makeSocketNonBlocking( int sfd )
 {
-    int s ;
+    (void) sfd ;
+    // int s ;
 
-    s = fcntl(sfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
-    if (s == -1)
-    {
-        perror("fcntl") ;
-        throw std::runtime_error("Could not set socket flags") ;
-        return -1 ;
-    }
+    // s = fcntl(sfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+    // if (s == -1)
+    // {
+    //     perror("fcntl") ;
+    //     throw std::runtime_error("Could not set socket flags") ;
+    //     return -1 ;
+    // }
     return 0 ;
 }
 
