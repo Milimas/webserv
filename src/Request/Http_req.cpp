@@ -139,9 +139,9 @@ std::string to_stringmetohd(int value) {
 std ::string SetRootLoc(std ::string path,std ::string loac_value,std ::string root)
 {
     std ::string result;
-    std :: cout << "==> path:" << path << std ::endl;
-	std :: cout << "==>locationpath:" << loac_value << std ::endl;
-	std :: cout << "==>root:" << root << std ::endl;
+    // std :: cout << "==> path:" << path << std ::endl;
+	// std :: cout << "==>locationpath:" << loac_value << std ::endl;
+	// std :: cout << "==>root:" << root << std ::endl;
     size_t it =path.find(loac_value);
     
     if(it != std ::string::npos )
@@ -225,7 +225,7 @@ int Http_req::MoreValidation()
     
     if(flag==0)
     {   
-        std :: cout << "Not Match \n"; 
+        // std :: cout << "Not Match \n"; 
         // if not found any match
       return (0); /// No match akhouuya 
     }
@@ -265,16 +265,16 @@ int Http_req::MoreValidation()
    
        
     _target=SetRootLoc(_target,key,this->server.getRoot());
-    std :: cout <<"last =>" <<  _target << std :: endl;
+    // std :: cout <<"last =>" <<  _target << std :: endl;
 
     return (1);
 }
 void Http_req::debugFunction()
 {
-    std ::cout << "our infoo\n";
-    std ::cout << "type mthode=>" << this->method << std ::endl;
-    std ::cout << "path=>" << this->path << std ::endl;
-    std ::cout << "vers=>" << this->http_ver << std ::endl;
+    // std ::cout << "our infoo\n";
+    // std ::cout << "type mthode=>" << this->method << std ::endl;
+    // std ::cout << "path=>" << this->path << std ::endl;
+    // std ::cout << "vers=>" << this->http_ver << std ::endl;
 
     ///// print headar
     std::map<std::string, std::string>::iterator it;
@@ -282,7 +282,7 @@ void Http_req::debugFunction()
     {
         if (it->first == "Content-Length")
         {
-            std ::cout << "ssssss\n";
+            // std ::cout << "ssssss\n";
         }
         //std ::cout << it->first << ":" << it->second << std ::endl;
     }
@@ -364,13 +364,13 @@ void Http_req::parse_re(std ::string bufer, int bytee)
 
 bool Is_dir(const char *ptr)
 {
-    std :: cout << "ptr==>" << ptr << std ::endl;
+    // std :: cout << "ptr==>" << ptr << std ::endl;
    if(!access(ptr,X_OK |R_OK))
    {
     DIR *dir= opendir(ptr);
     if(dir !=NULL)
     {
-        std :: cout << "Is directory\n";
+        // std :: cout << "Is directory\n";
         return true;
     }
     return false;
@@ -400,9 +400,9 @@ void Http_req ::CheckLoc()
         //check if index file are exit 
         /// ==> get first index string
         std ::string main_index=index.at(0);
-        std :: cout << "index  name==>" << main_index << std :: endl;
+        // std :: cout << "index  name==>" << main_index << std :: endl;
         _target+=main_index;
-        std :: cout << _target << std ::endl;
+        // std :: cout << _target << std ::endl;
 
         
     }
@@ -417,7 +417,7 @@ void Http_req:: LetGet()
    // std :: cout << "output" << check_type << std ::endl;
     if(check_type == IS_DIR)
     {
-        std :: cout << "hEYY\n";
+        // std :: cout << "hEYY\n";
        CheckLoc();
     }
    

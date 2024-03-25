@@ -93,7 +93,7 @@ Lexer::tokens_t Lexer::lexer( const std::string& configPath )
 	fillMaps() ; // fills the maps for (symbol names)
 	// std::list<std::string>::iterator it = tokens.begin() ;
 	// while (it != tokens.end())
-	// 	std::cout << *prev = it << std::endl ;
+	// 	std::cerr << *prev = it << std::endl ;
 	return (tokens) ;
 }
 
@@ -107,8 +107,8 @@ void Lexer::nextSym( void )
 	if (it != tokens.end())
 		prev = it++ ;
 	sym = nameSyms[*it] ;
-	// std::cout << std::setw(10) << std::left << getSymbolName(sym) << " ";
-	// std::cout << *it << std::endl ;
+	// std::cerr << std::setw(10) << std::left << getSymbolName(sym) << " ";
+	// std::cerr << *it << std::endl ;
 }
 
 bool Lexer::accept(sym_t s)

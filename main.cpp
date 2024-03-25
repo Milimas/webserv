@@ -10,7 +10,7 @@
 
 // static void print(Server s)
 // {
-// 	std::cout << s << std::endl ;
+// 	std::cerr << s << std::endl ;
 // }
 
 

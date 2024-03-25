@@ -26,7 +26,7 @@ int SocketManager::createSocket( const char *host, const char *port, int ai_fami
 
     for (rp = result; rp != NULL; rp = rp->ai_next)
     {
-        std::cout << "Trying first interface" << std::endl ;
+        std::cerr << "Trying first interface" << std::endl ;
         sfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol) ;
         if (!ISVALIDSOCKET(sfd))
             continue ;

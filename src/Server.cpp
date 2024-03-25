@@ -180,7 +180,7 @@ std::ostream& operator<<( std::ostream& os, const Server& server )
         os << *itS << " " ;
         itS++ ;
     }
-    std::cout << std::endl ;
+    os << std::endl ;
 
     std::vector<std::string>::const_iterator inx = server.getIndex().begin() ;
     os << "\t\tIndex: " ;
